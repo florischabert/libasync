@@ -21,68 +21,45 @@
  * THE SOFTWARE.
  */
 
-#include <thread>
-#include <vector>
-#include <string>
+#include <mutex>
+#include <condition_variable>
 
 #include <async.h>
 
 namespace async {
 
-class worker {
-  std::thread thread;
-public:
-  void wait() {
-  }
-};
-
 struct internal {
-  std::vector<worker> workers;
-  std::vector<std::function<void(void)>> works;
+  std::mutex mutex;
+  std::condition_variable condition;
+  unsigned long count;
 };
 
-pool::pool(): pool(std::thread::hardware_concurrency()) {
-
-}
-
-pool::pool(size_t nthreads) {
+semaphore::semaphore(size_t count) {
   internal_ = new internal;
-
-  for (size_t idx = 0; idx < nthreads; idx++) {
-    internal_->workers.push_back(worker());
-  }
+  internal_->count = count;
 }
 
-pool::~pool() {
+semaphore::~semaphore() {
   delete internal_;
 }
 
-pool& pool::sync(const std::function<void(void)>& work) {
-  internal_->works.insert(internal_->works.begin(), work);
+semaphore& semaphore::up() {
+  std::unique_lock<std::mutex> lock(internal_->mutex);
+  
+  ++internal_->count;
+  internal_->condition.notify_one();
+
   return *this;
 }
 
-pool& pool::push(const std::function<void(void)>& work) {
-  internal_->works.insert(internal_->works.begin(), work);
-  return *this;
-}
+semaphore& semaphore::down() {
+  std::unique_lock<std::mutex> lock(internal_->mutex);
 
-pool& pool::apply(size_t iterations, const std::function<void(size_t idx)>&) {
-  return *this;
-}
-
-pool& pool::push(const class barrier&) {
-  return *this;
-}
-
-pool& pool::wait() {
-  for (worker &w : internal_->workers) {
-    w.wait();
+  while (!internal_->count) {
+    internal_->condition.wait(lock);
   }
-  return *this;
-}
-
-pool& pool::clear() {
+  --internal_->count;
+  
   return *this;
 }
 
