@@ -20,22 +20,22 @@
 
 LIB=libasync.a
 SRC=$(wildcard src/*.cc)
-TESTS=$(wildcard test/*.cc)
+TESTS=$(wildcard tests/*.cc)
 CXXFLAGS += -std=c++11 -stdlib=libc++ -Iinclude -MD -MP -Wall -g
 
-all: $(LIB)
+all: $(LIB) test
 
 %.o: %.cc
-	@echo CXX $@
+	@echo CXX $<
 	@$(CXX) $(CXXFLAGS) -MD -MF $(@:.o=.d) -o $@ -c $<
 
 $(LIB): $(SRC:.cc=.o)
 	@echo AR $@
-	$(AR) rcs $@ $^
+	@$(AR) rcs $@ $^
 
 test: $(TESTS:.cc=.o) $(LIB)
 	@echo LD $@
-	$(CXX) $(LDFLAGS) -o $@ $^
+	@$(CXX) $(LDFLAGS) -o $@ $^
 
 -include $(SRC:.cc=.d) $(TESTS:.cc=.d)
 

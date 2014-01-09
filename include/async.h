@@ -28,36 +28,7 @@
 
 namespace async {
 
-class mutex {
-public:
-  mutex();
-  ~mutex();
-
-  mutex& lock(const std::function<void(void)>&);
-
-private:
-  struct internal *internal_;
-  mutex(const mutex&);
-  void operator=(const mutex&);
-};
-
-class semaphore {
-public:
-  semaphore(size_t count = 1);
-  ~semaphore();
-  
-  semaphore& up();
-  semaphore& down();
-
-private:
-  struct internal *internal_;
-  semaphore(const semaphore&);
-  void operator=(const semaphore&);
-};
-
 class barrier {};
-
-extern size_t platform_threads;
 
 class pool {
 public:
@@ -65,7 +36,6 @@ public:
   pool(size_t num_threads);
   ~pool();
 
-  pool& sync(const std::function<void(void)>&);
   pool& push(const std::function<void(void)>&);
   pool& push(const barrier&);
 
@@ -79,6 +49,34 @@ private:
   struct internal *internal_;
   pool(const pool&);
   void operator=(const pool&);
+};
+
+class gate {
+public:
+  gate();
+  ~gate();
+
+  gate& push(const std::function<void(void)>&);
+
+private:
+  struct internal *internal_;
+  gate(const gate&);
+  void operator=(const gate&);
+};
+
+template <class type>
+class channel {
+public:
+  channel();
+  ~channel();
+
+  channel& push(type val);
+  type pull();
+
+private:
+  struct internal *internal_;
+  channel(const channel&);
+  void operator=(const channel&);
 };
 
 }

@@ -34,33 +34,39 @@ struct internal {
   unsigned long count;
 };
 
-semaphore::semaphore(size_t count) {
-  internal_ = new internal;
-  internal_->count = count;
+template <class type>
+channel<type>::channel() {
+  // internal_ = new internal;
+  // internal_->count = 0;
 }
 
-semaphore::~semaphore() {
-  delete internal_;
+template <class type>
+channel<type>::~channel() {
+  // delete internal_;
 }
 
-semaphore& semaphore::up() {
-  std::unique_lock<std::mutex> lock(internal_->mutex);
+template <class type>
+channel<type>& channel<type>::push(type val) {
+  // std::unique_lock<std::mutex> lock(internal_->mutex);
   
-  ++internal_->count;
-  internal_->condition.notify_one();
+  // ++internal_->count;
+  // internal_->condition.notify_one();
 
   return *this;
 }
 
-semaphore& semaphore::down() {
-  std::unique_lock<std::mutex> lock(internal_->mutex);
+template <class type>
+type channel<type>::pull() {
+  // std::unique_lock<std::mutex> lock(internal_->mutex);
 
-  while (!internal_->count) {
-    internal_->condition.wait(lock);
-  }
-  --internal_->count;
+  // while (!internal_->count) {
+  //   internal_->condition.wait(lock);
+  // }
+  // --internal_->count;
   
-  return *this;
+  return 0;
 }
+
+template class channel<int>;
 
 }

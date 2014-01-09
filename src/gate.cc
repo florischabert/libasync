@@ -31,15 +31,15 @@ struct internal {
   std::mutex mutex;
 };
 
-mutex::mutex() {
+gate::gate() {
   internal_ = new internal;
 }
 
-mutex::~mutex() {
+gate::~gate() {
   delete internal_;
 }
 
-mutex& mutex::lock(const std::function<void(void)>& func) {
+gate& gate::push(const std::function<void(void)>& func) {
   std::unique_lock<std::mutex> lock(internal_->mutex);
   func();
 

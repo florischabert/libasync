@@ -27,61 +27,115 @@
 
 using namespace std;
 
+#define assert(cond) \
+	do { \
+		if (!(cond)) { \
+			cout << "assertion failed: " << #cond << endl; \
+			failed = true; \
+		} \
+	} while (0)
 
-bool test_channel() {
-		
+bool test_pool() {
+	bool failed = false;
 
-}
+	async::pool pool;
+	int val = 0;
 
-int main(int argc, char const *argv[])
-{
-	// pools, gates
-
-	async::pool pool();
-	async::gate state_gate();
-	int state = 0;
-
-	pool.push([]{
-		assert(state == 2);
-
-		sleep(2);
-
-		async::gated(state_gate, []{
-			state = 1;
-		});
+	pool.push([&]{
+		assert(val == 0 || val == 2);
+		val = 1;
 	});
 
-	pool.push([]{
-		assert(state == 3);
-
-		sleep(1);
-
-		async::gated(state_gate, []{
-			state = 2;
-		});
+	pool.push([&]{
+		assert(val == 0 || val == 1);
+		val = 2;
 	});
 
 	pool.push(async::barrier());
 
-	pool.push([]{
-		assert(state == 0);
-
-		async::gated(state_gate, []{
-			state = 3;
-		});
+	pool.push([&]{
+		assert(val == 1 || val == 2);
+		val = 3;
 	});
 
 	pool.wait();
 
-	// channels
+	assert(val == 3);
 
-	async::channel chan();
+	return !failed;
+}
 
-	async::run([]{
-		std::cout << chan.receive() << std::endl;
+bool test_gate() {
+	bool failed = false;
+
+	async::pool pool;
+	async::gate gate;
+	int max_workers = 5;
+	int max_loops = 10000;
+	int val = 0;
+
+	for (int i = 0; i < max_workers; i++) {
+		pool.push([&]{
+			for (int j = 0; j < max_loops; j++) {
+				gate.push([&]{
+					val++;
+				});
+			}
+		});
+	}
+
+	assert(val == max_workers * max_loops);
+
+	return !failed;
+}
+
+bool test_channel() {
+	bool failed = false;
+
+	async::pool pool;
+	async::channel<int> channel;
+
+	pool.push([&]{
+		int val = channel.pull();
+		assert(val == 3);
 	});
 
-	chan.send("hey");
+	channel.push(3);
+
+	pool.wait();
+
+	return !failed;
+}
+
+int main(int argc, char const *argv[])
+{
+	struct {
+		bool (*func)();
+		string name;
+	} tests[] = {
+		{ test_pool,     "pool"    },
+		{ test_gate,     "gate"    },
+		{ test_channel,  "channel" },
+	};
+	int tests_count = sizeof(tests)/sizeof(tests[0]);
+	int failed_count = 0;
+
+	cout << "Running..." << endl;
+
+	for (int i = 0; i < tests_count; i++) {
+		cout << "-> " <<  tests[i].name << endl;
+		if (!tests[i].func()) {
+			failed_count++;
+		}
+	}
+
+	if (failed_count) {
+		cout << failed_count << " tests out of ";
+		cout << tests_count << " failed." << endl;
+	}
+	else {
+		cout << "All tests passed." << endl;
+	}
 
 	return 0;
 }

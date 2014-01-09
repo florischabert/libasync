@@ -36,24 +36,22 @@ How to use it?
 
 *Gates*
 
-	async::gated([]{
-		// critical code is gated (general lock)
-	});
-
 	async::gate gate();
-	async::gated(gate, []{
-		// still critical (only locked for the specific gate)
+	
+	gate.push(gate, []{
+		// critical section
 	});
 
 *Channels*
 
-	async::channel chan();
+	async::pool pool();
+	async::channel channel();
 
-	async::run([]{
-		std::cout << chan.receive() << std::endl;
+	pool.push([]{
+		std::cout << channel.pull() << std::endl;
 	})
 
-	chan.send("hey");
+	channel.push("hey");
 
 *Pipelining*
 	
