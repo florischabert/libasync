@@ -25,7 +25,7 @@ How to use it?
 		// some more concurrent computation
 	});
 
-	pool.push(async::barrier());
+	pool.push(async::barrier);
 
 	pool.push([]{
 	   // to be computed after the barrier
@@ -38,20 +38,9 @@ How to use it?
 
 	async::gate gate();
 	
-	gate.push(gate, []{
+	gate.push([]{
 		// critical section
 	});
-
-*Channels*
-
-	async::pool pool();
-	async::channel channel();
-
-	pool.push([]{
-		std::cout << channel.pull() << std::endl;
-	})
-
-	channel.push("hey");
 
 *Pipelining*
 	

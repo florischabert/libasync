@@ -18,20 +18,20 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-LIB=libasync.a
+LIB=libasync.dylib
 SRC=$(wildcard src/*.cc)
 TESTS=$(wildcard tests/*.cc)
-CXXFLAGS += -std=c++11 -stdlib=libc++ -Iinclude -MD -MP -Wall -g
+CXXFLAGS += -std=c++11 -Iinclude -MD -MP -Wall -g
 
-all: $(LIB) test
+all: $(LIB)
 
 %.o: %.cc
 	@echo CXX $<
 	@$(CXX) $(CXXFLAGS) -MD -MF $(@:.o=.d) -o $@ -c $<
 
 $(LIB): $(SRC:.cc=.o)
-	@echo AR $@
-	@$(AR) rcs $@ $^
+	@echo LD $@
+	@$(CXX) $(LDFLAGS) -dynamiclib -o $@ $^
 
 test: $(TESTS:.cc=.o) $(LIB)
 	@echo LD $@

@@ -68,10 +68,10 @@ bool test_pool() {
 bool test_gate() {
 	bool failed = false;
 
-	async::pool pool;
+	const int max_workers = 10;
+	const int max_loops = 1000;
+	async::pool pool(max_workers);
 	async::gate gate;
-	int max_workers = 5;
-	int max_loops = 10000;
 	int val = 0;
 
 	for (int i = 0; i < max_workers; i++) {
@@ -84,25 +84,9 @@ bool test_gate() {
 		});
 	}
 
-	assert(val == max_workers * max_loops);
-
-	return !failed;
-}
-
-bool test_channel() {
-	bool failed = false;
-
-	async::pool pool;
-	async::channel<int> channel;
-
-	pool.push([&]{
-		int val = channel.pull();
-		assert(val == 3);
-	});
-
-	channel.push(3);
-
 	pool.wait();
+
+	assert(val == max_workers * max_loops);
 
 	return !failed;
 }
@@ -115,27 +99,24 @@ int main(int argc, char const *argv[])
 	} tests[] = {
 		{ test_pool,     "pool"    },
 		{ test_gate,     "gate"    },
-		{ test_channel,  "channel" },
 	};
 	int tests_count = sizeof(tests)/sizeof(tests[0]);
 	int failed_count = 0;
 
-	cout << "Running..." << endl;
-
 	for (int i = 0; i < tests_count; i++) {
-		cout << "-> " <<  tests[i].name << endl;
+		cout << "TEST " <<  tests[i].name << endl;
 		if (!tests[i].func()) {
 			failed_count++;
 		}
 	}
 
 	if (failed_count) {
-		cout << failed_count << " tests out of ";
+		cout << "- " << failed_count << " tests out of ";
 		cout << tests_count << " failed." << endl;
 	}
 	else {
-		cout << "All tests passed." << endl;
+		cout << "- All tests passed." << endl;
 	}
 
-	return 0;
+	return failed_count;
 }

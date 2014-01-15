@@ -32,51 +32,36 @@ class barrier {};
 
 class pool {
 public:
-  pool();
-  pool(size_t num_threads);
-  ~pool();
+	pool();
+	pool(size_t num_threads);
+	~pool();
 
-  pool& push(const std::function<void(void)>&);
-  pool& push(const barrier&);
+	pool& push(const std::function<void(void)>&);
+	pool& push(const barrier&);
 
-  pool& apply(size_t iterations, const std::function<void(size_t idx)>&);
+	pool& apply(size_t iterations, const std::function<void(size_t idx)>&);
 
-  pool& wait();
+	pool& wait();
 
-  pool& clear();
+	pool& clear();
 
 private:
-  struct internal *internal_;
-  pool(const pool&);
-  void operator=(const pool&);
+	class impl; std::shared_ptr<impl> pimpl;
+	pool(const pool&);
+	void operator=(const pool&);
 };
 
 class gate {
 public:
-  gate();
-  ~gate();
+	gate();
+	~gate();
 
-  gate& push(const std::function<void(void)>&);
-
-private:
-  struct internal *internal_;
-  gate(const gate&);
-  void operator=(const gate&);
-};
-
-template <class type>
-class channel {
-public:
-  channel();
-  ~channel();
-
-  channel& push(type val);
-  type pull();
+	gate& push(const std::function<void(void)>&);
 
 private:
-  struct internal *internal_;
-  channel(const channel&);
-  void operator=(const channel&);
+	class impl; std::unique_ptr<impl> pimpl;
+	gate(const gate&);
+	void operator=(const gate&);
 };
 
 }

@@ -24,58 +24,148 @@
 #include <thread>
 #include <vector>
 #include <string>
+#include <mutex>
+#include <queue>
+#include <condition_variable>
 
 #include <async.h>
 
 namespace async {
 
-class worker {
-  std::thread thread;
+class pool::impl {
 public:
-  void wait() {
-  }
+	std::mutex mutex;
+	std::condition_variable event;
+	std::condition_variable ready;
+	std::vector<std::thread> workers;
+	std::queue<std::function<void(void)>> jobs;
+	size_t nready;
+	bool barrier;
+	bool killed;
+
+	impl();
+	void worker_thread(void);
 };
 
-struct internal {
-  std::vector<worker> workers;
-  std::vector<std::function<void(void)>> works;
-};
-
-pool::pool(): pool(std::thread::hardware_concurrency()) {
-
+pool::impl::impl(void) {
+	killed = false;
+	barrier = false;
+	nready = 0;
 }
 
-pool::pool(size_t nthreads) {
-  internal_ = new internal;
+void pool::impl::worker_thread(void) {
+	std::unique_lock<std::mutex> lock(mutex);
 
-  // for (size_t idx = 0; idx < nthreads; idx++) {
-    // internal_->workers.push_back(worker());
-  // }
+	while (!killed) {
+		std::function<void(void)> job = nullptr;
+
+		while (!killed && (jobs.empty() || barrier)) {
+			nready++;
+			ready.notify_all();
+			event.wait(lock);
+			nready--;
+		}
+
+		if (!jobs.empty()) {
+			job = jobs.front();
+			jobs.pop();
+
+			if (job) {
+				lock.unlock();
+				job();
+				lock.lock();
+			}
+			else {
+				barrier = true;
+				while (nready != workers.size() - 1) {
+					ready.wait(lock);
+				}
+
+				barrier = false;
+				event.notify_all();
+			}
+		}
+	}
+}
+
+pool::pool() : pool(std::thread::hardware_concurrency()) {
+}
+
+pool::pool(size_t nthreads) : pimpl(new impl) {
+	if (nthreads == 0) {
+		nthreads = 1;
+	}
+
+	for (size_t idx = 0; idx < nthreads; idx++) {
+		pimpl->workers.push_back(std::thread(&impl::worker_thread, pimpl));
+	}
 }
 
 pool::~pool() {
-  delete internal_;
+	wait();
+
+	pimpl->killed = true;
+	pimpl->event.notify_all();
+
+	for (auto &worker : pimpl->workers) {
+		worker.join();
+	}
 }
 
+pool& pool::push(const std::function<void(void)>& job) {
+	if (job) {
+		std::lock_guard<std::mutex> lock(pimpl->mutex);
+		pimpl->jobs.push(job);
 
-pool& pool::push(const std::function<void(void)>& work) {
-  // internal_->works.insert(internal_->works.begin(), work);
-  return *this;
+		pimpl->event.notify_one();
+	}
+
+	return *this;
 }
 
 pool& pool::push(const class barrier&) {
-  return *this;
+	{
+		std::lock_guard<std::mutex> lock(pimpl->mutex);
+		pimpl->jobs.push(nullptr);
+	}
+	
+	pimpl->event.notify_one();
+
+	return *this;
 }
 
 pool& pool::wait() {
-  // for (worker &w : internal_->workers) {
-    // w.wait();
-  // }
-  return *this;
+	std::unique_lock<std::mutex> lock(pimpl->mutex);
+
+	while (pimpl->nready != pimpl->workers.size() || !pimpl->jobs.empty()) {
+		pimpl->ready.wait(lock);
+	}
+
+	return *this;
+}
+
+pool& pool::apply(size_t iterations, const std::function<void(size_t idx)>& job) {
+	for (int idx = 0; idx < iterations; idx++) {
+		push([&]{
+			job(idx);
+		});
+	}
+
+	return *this;
 }
 
 pool& pool::clear() {
-  return *this;
+	{
+		std::lock_guard<std::mutex> lock(pimpl->mutex);
+
+		while (!pimpl->jobs.empty()) {
+			pimpl->jobs.pop();
+		}
+	}
+
+	wait();
+
+	return *this;
 }
 
 }

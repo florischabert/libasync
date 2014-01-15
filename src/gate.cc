@@ -27,23 +27,22 @@
 
 namespace async {
 
-struct internal {
-  std::mutex mutex;
+class gate::impl {
+public:
+	std::mutex mutex;
 };
 
-gate::gate() {
-  internal_ = new internal;
+gate::gate() : pimpl(new impl) {
 }
 
 gate::~gate() {
-  delete internal_;
 }
 
 gate& gate::push(const std::function<void(void)>& func) {
-  std::unique_lock<std::mutex> lock(internal_->mutex);
-  func();
+	std::lock_guard<std::mutex> lock(pimpl->mutex);
+	func();
 
-  return *this;
+	return *this;
 }
 
 }
