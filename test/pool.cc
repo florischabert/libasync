@@ -21,49 +21,35 @@
  * THE SOFTWARE.
  */
 
-#ifndef __ASYNC_H__
-#define __ASYNC_H__
+#include <async.h>
+#include "test.h"
 
-#include <functional>
+test pool_test("pool", [](bool &failed){
+	const int max_loops = 100;
 
-namespace async {
+	for (int i = 0; i < max_loops; i++) {
+		async::pool pool;
+		int val = 0;
 
-class barrier {};
+		pool.push([&]{
+			assert(val == 0 || val == 2);
+			val = 1;
+		});
 
-class pool {
-public:
-	pool();
-	pool(size_t num_threads);
-	~pool();
+		pool.push([&]{
+			assert(val == 0 || val == 1);
+			val = 2;
+		});
 
-	pool& push(const std::function<void(void)>&);
-	pool& push(const barrier&);
+		pool.push(async::barrier());
 
-	pool& apply(size_t iterations, const std::function<void(size_t idx)>&);
+		pool.push([&]{
+			assert(val == 1 || val == 2);
+			val = 3;
+		});
 
-	pool& wait();
+		pool.wait();
 
-	pool& clear();
-
-private:
-	struct impl; std::shared_ptr<impl> pimpl;
-	pool(const pool&);
-	void operator=(const pool&);
-};
-
-class gate {
-public:
-	gate();
-	~gate();
-
-	gate& push(const std::function<void(void)>&);
-
-private:
-	struct impl; std::unique_ptr<impl> pimpl;
-	gate(const gate&);
-	void operator=(const gate&);
-};
-
-}
-
-#endif
+		assert(val == 3);
+	}
+});

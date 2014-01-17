@@ -27,8 +27,7 @@
 
 namespace async {
 
-class gate::impl {
-public:
+struct gate::impl {
 	std::mutex mutex;
 };
 

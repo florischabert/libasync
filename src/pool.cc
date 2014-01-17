@@ -32,8 +32,7 @@
 
 namespace async {
 
-class pool::impl {
-public:
+struct pool::impl {
 	std::mutex mutex;
 	std::condition_variable event;
 	std::condition_variable ready;

@@ -18,12 +18,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-LIB=libasync.dylib
+LIB=libasync
 SRC=$(wildcard src/*.cc)
-TESTS=$(wildcard tests/*.cc)
-CXXFLAGS += -std=c++11 -Iinclude -MD -MP -Wall -g
+TSRC=$(wildcard test/*.cc)
+TEST=test/test
+CXXFLAGS+=-std=c++11 -Iinclude -MD -MP -Wall -g
 
-all: $(LIB)
+ifeq ($(shell uname -s),Darwin)
+	LIB:=$(LIB).dylib
+else
+	LIB:=$(LIB).so
+endif
+
+all: $(LIB) $(TEST)
 
 %.o: %.cc
 	@echo CXX $<
@@ -33,14 +40,14 @@ $(LIB): $(SRC:.cc=.o)
 	@echo LD $@
 	@$(CXX) $(LDFLAGS) -dynamiclib -o $@ $^
 
-test: $(TESTS:.cc=.o) $(LIB)
+$(TEST): $(TSRC:.cc=.o) $(LIB)
 	@echo LD $@
 	@$(CXX) $(LDFLAGS) -o $@ $^
 
--include $(SRC:.cc=.d) $(TESTS:.cc=.d)
+-include $(SRC:.cc=.d) $(TSRC:.cc=.d)
 
 clean:
-	@$(RM) $(LIB) $(SRC:.cc=.o) $(SRC:.cc=.d) test $(TESTS:.cc=.o) $(TESTS:.cc=.d)
+	@$(RM) $(LIB) $(TEST) $(SRC:.cc=.o) $(SRC:.cc=.d) $(TSRC:.cc=.o) $(TSRC:.cc=.d)
 
 .PHONY: clean
 

@@ -21,49 +21,27 @@
  * THE SOFTWARE.
  */
 
-#ifndef __ASYNC_H__
-#define __ASYNC_H__
+#ifndef __TEST_H__
+#define __TEST_H__
 
-#include <functional>
+#include <iostream>
+#include <vector>
 
-namespace async {
 
-class barrier {};
+#define assert(cond) \
+	do { \
+		if (!(cond)) { \
+			std::cerr << "assertion failed: " << #cond << std::endl; \
+			failed = true; \
+		} \
+	} while (0)
 
-class pool {
+class test {
 public:
-	pool();
-	pool(size_t num_threads);
-	~pool();
+	test(std::string name, const std::function<void(bool&)>&);
 
-	pool& push(const std::function<void(void)>&);
-	pool& push(const barrier&);
-
-	pool& apply(size_t iterations, const std::function<void(size_t idx)>&);
-
-	pool& wait();
-
-	pool& clear();
-
-private:
-	struct impl; std::shared_ptr<impl> pimpl;
-	pool(const pool&);
-	void operator=(const pool&);
+	std::string name;
+	const std::function<void(bool&)>& func;
 };
-
-class gate {
-public:
-	gate();
-	~gate();
-
-	gate& push(const std::function<void(void)>&);
-
-private:
-	struct impl; std::unique_ptr<impl> pimpl;
-	gate(const gate&);
-	void operator=(const gate&);
-};
-
-}
 
 #endif

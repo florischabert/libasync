@@ -21,53 +21,10 @@
  * THE SOFTWARE.
  */
 
-#include <async.h>
+#include <async.h> 
+#include "test.h"
 
-#include <iostream>
-
-using namespace std;
-
-#define assert(cond) \
-	do { \
-		if (!(cond)) { \
-			cout << "assertion failed: " << #cond << endl; \
-			failed = true; \
-		} \
-	} while (0)
-
-bool test_pool() {
-	bool failed = false;
-
-	async::pool pool;
-	int val = 0;
-
-	pool.push([&]{
-		assert(val == 0 || val == 2);
-		val = 1;
-	});
-
-	pool.push([&]{
-		assert(val == 0 || val == 1);
-		val = 2;
-	});
-
-	pool.push(async::barrier());
-
-	pool.push([&]{
-		assert(val == 1 || val == 2);
-		val = 3;
-	});
-
-	pool.wait();
-
-	assert(val == 3);
-
-	return !failed;
-}
-
-bool test_gate() {
-	bool failed = false;
-
+test gate_test("gate", [](bool &failed){
 	const int max_workers = 10;
 	const int max_loops = 1000;
 	async::pool pool(max_workers);
@@ -87,36 +44,4 @@ bool test_gate() {
 	pool.wait();
 
 	assert(val == max_workers * max_loops);
-
-	return !failed;
-}
-
-int main(int argc, char const *argv[])
-{
-	struct {
-		bool (*func)();
-		string name;
-	} tests[] = {
-		{ test_pool,     "pool"    },
-		{ test_gate,     "gate"    },
-	};
-	int tests_count = sizeof(tests)/sizeof(tests[0]);
-	int failed_count = 0;
-
-	for (int i = 0; i < tests_count; i++) {
-		cout << "TEST " <<  tests[i].name << endl;
-		if (!tests[i].func()) {
-			failed_count++;
-		}
-	}
-
-	if (failed_count) {
-		cout << "- " << failed_count << " tests out of ";
-		cout << tests_count << " failed." << endl;
-	}
-	else {
-		cout << "- All tests passed." << endl;
-	}
-
-	return failed_count;
-}
+});

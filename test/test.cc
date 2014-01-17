@@ -21,49 +21,36 @@
  * THE SOFTWARE.
  */
 
-#ifndef __ASYNC_H__
-#define __ASYNC_H__
+#include "test.h"
 
-#include <functional>
-
-namespace async {
-
-class barrier {};
-
-class pool {
-public:
-	pool();
-	pool(size_t num_threads);
-	~pool();
-
-	pool& push(const std::function<void(void)>&);
-	pool& push(const barrier&);
-
-	pool& apply(size_t iterations, const std::function<void(size_t idx)>&);
-
-	pool& wait();
-
-	pool& clear();
-
-private:
-	struct impl; std::shared_ptr<impl> pimpl;
-	pool(const pool&);
-	void operator=(const pool&);
-};
-
-class gate {
-public:
-	gate();
-	~gate();
-
-	gate& push(const std::function<void(void)>&);
-
-private:
-	struct impl; std::unique_ptr<impl> pimpl;
-	gate(const gate&);
-	void operator=(const gate&);
-};
-
+std::vector<test> &get_tests() {
+	static std::vector<test> tests;
+	return tests;
 }
 
-#endif
+test::test(std::string _name, const std::function<void(bool&)>& _func)
+	: name(_name), func(_func) {
+	get_tests().push_back(std::move(*this));
+}
+
+int main(int argc, char const *argv[])
+{
+	int failed_count = 0;
+
+	std::cout << "Testing..." << std::endl;
+	for (auto &t : get_tests()) {
+		bool failed = false;
+		std::cout << "- " <<  t.name << std::endl;
+		t.func(failed);
+		failed_count += failed;
+	}
+
+	if (failed_count) {
+		std::cout << failed_count << " tests failed." << std::endl;
+	}
+	else {
+		std::cout << "All tests passed." << std::endl;
+	}
+
+	return failed_count;
+}

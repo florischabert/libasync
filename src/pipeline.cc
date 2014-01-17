@@ -21,49 +21,5 @@
  * THE SOFTWARE.
  */
 
-#ifndef __ASYNC_H__
-#define __ASYNC_H__
-
-#include <functional>
-
-namespace async {
-
-class barrier {};
-
-class pool {
-public:
-	pool();
-	pool(size_t num_threads);
-	~pool();
-
-	pool& push(const std::function<void(void)>&);
-	pool& push(const barrier&);
-
-	pool& apply(size_t iterations, const std::function<void(size_t idx)>&);
-
-	pool& wait();
-
-	pool& clear();
-
-private:
-	struct impl; std::shared_ptr<impl> pimpl;
-	pool(const pool&);
-	void operator=(const pool&);
-};
-
-class gate {
-public:
-	gate();
-	~gate();
-
-	gate& push(const std::function<void(void)>&);
-
-private:
-	struct impl; std::unique_ptr<impl> pimpl;
-	gate(const gate&);
-	void operator=(const gate&);
-};
-
-}
-
-#endif
+#include <async.h>
+ 
