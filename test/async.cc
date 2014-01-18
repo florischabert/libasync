@@ -21,27 +21,37 @@
  * THE SOFTWARE.
  */
 
-#ifndef __TEST_H__
-#define __TEST_H__
+#include <async.h> 
+#include "test.h"
 
-#include <iostream>
-#include <vector>
+test spawn_test("spawn", [](bool &failed){
+	async::channel<int> channel;
+	int val = 0;
 
+	async::spawn s([&]{
+		int ret = channel.pop();
+		assert(ret == 42);
 
-#define assert(cond) \
-	do { \
-		if (!(cond)) { \
-			std::cerr << "assertion failed: " << #cond << std::endl; \
-			failed = true; \
-		} \
-	} while (0)
+		assert(val == 1);
+		val = 2;
+	});
 
-class test {
-public:
-	test(std::string name, const std::function<void(bool&)>);
+	assert(val == 0);
+	val = 1;
 
-	std::string name;
-	const std::function<void(bool&)> func;
-};
+	channel.push(42);
+});
 
-#endif
+test apply_test("apply", [](bool &failed){
+	const int max_iterations = 100;
+	async::gate gate;
+	int val = 0;
+
+	async::apply(max_iterations, [&](size_t idx){
+		gate.push([&]{
+			val++;
+		});
+	});
+
+	assert(val == max_iterations);
+});

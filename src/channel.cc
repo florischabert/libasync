@@ -21,5 +21,57 @@
  * THE SOFTWARE.
  */
 
+#include <mutex>
+#include <condition_variable>
+#include <queue>
 #include <async.h>
- 
+
+namespace async {
+
+template<class type>
+struct channel<type>::impl {
+	std::queue<type> queue;
+	std::mutex mutex;
+	std::condition_variable ready;
+};
+
+template<class type>
+channel<type>::channel() : pimpl(new impl) {
+}
+
+template<class type>
+channel<type>::~channel() {
+}
+
+template<class type>
+channel<type>& channel<type>::push(type val) {
+	{
+		std::lock_guard<std::mutex> lock(pimpl->mutex);
+		pimpl->queue.push(val);
+		pimpl->ready.notify_one();
+	}
+
+	return *this;
+}
+
+template<class type>
+type channel<type>::pop() {
+	type val;
+
+	{
+		std::unique_lock<std::mutex> lock(pimpl->mutex);
+
+		while (pimpl->queue.empty()) {
+			pimpl->ready.wait(lock);
+		}
+
+		val = pimpl->queue.front();
+		pimpl->queue.pop();
+	}
+	
+	return val;
+}
+
+template class channel<int>;
+
+}

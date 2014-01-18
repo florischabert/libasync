@@ -12,11 +12,18 @@ libasync only uses APIs defined in the C++11 standard. This means that it's full
 How to use it?
 --------------
 
-*Simple threads*
+*Scoped threading*
+	{
+		async::spawn thread([]{
+			// new thread
+		});
+	} // join when out of scope
 
-	async::spawn([]{
-		// running on its own thread
+	async::apply(n, [](size_t idx){
+		// run on n threads in parallel
 	});
+	// auto join on destruction
+
 
 *Threading pools*
 
@@ -51,11 +58,11 @@ How to use it?
 
 	async::channel<std::string> channel();
 	
-	async::spawn([&]{
+	async::spawn t1([&]{
 		std::cout << channel.pop() << std::endl;
 	});
 
-	async::spawn([&]{
+	async::spawn t2([&]{
 		channel.push("hey");
 	});
 

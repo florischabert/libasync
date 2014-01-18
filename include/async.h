@@ -28,6 +28,28 @@
 
 namespace async {
 
+class spawn {
+public:
+	spawn(const std::function<void(void)>&);
+	~spawn();
+
+private:
+	struct impl; std::shared_ptr<impl> pimpl;
+	spawn(const spawn&);
+	void operator=(const spawn&);
+};
+
+class apply {
+public:
+	apply(size_t iterations, const std::function<void(size_t idx)>&);
+	~apply();
+
+private:
+	struct impl; std::shared_ptr<impl> pimpl;
+	apply(const apply&);
+	void operator=(const apply&);
+};
+
 class barrier {};
 
 class pool {
@@ -62,6 +84,37 @@ private:
 	struct impl; std::unique_ptr<impl> pimpl;
 	gate(const gate&);
 	void operator=(const gate&);
+};
+
+template<class type>
+class channel {
+public:
+	channel();
+	~channel();
+
+	channel& push(type);
+	type pop();
+
+private:
+	struct impl; std::unique_ptr<impl> pimpl;
+	channel(const channel&);
+	void operator=(const channel&);
+};
+
+template<class type>
+class pipeline {
+public:
+	pipeline();
+	~pipeline();
+
+	pipeline& stage(const std::function<void(type&)>&);
+	pipeline& push(type);
+	pipeline& wait();
+
+private:
+	struct impl; std::unique_ptr<impl> pimpl;
+	pipeline(const pipeline&);
+	void operator=(const pipeline&);
 };
 
 }

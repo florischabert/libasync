@@ -23,3 +23,22 @@
 
 #include <async.h>
 #include "test.h"
+
+test channel_test("channel", [](bool &failed){
+	async::channel<int> channel;
+	int val = 0;
+
+	{
+		async::spawn t1([&]{
+			val = channel.pop();
+		});
+
+		assert(val == 0);
+
+		async::spawn t2([&]{
+			channel.push(42);
+		});
+	}
+
+	assert(val == 42);
+});

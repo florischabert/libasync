@@ -21,27 +21,41 @@
  * THE SOFTWARE.
  */
 
-#ifndef __TEST_H__
-#define __TEST_H__
-
-#include <iostream>
+#include <thread>
 #include <vector>
 
+#include <async.h>
 
-#define assert(cond) \
-	do { \
-		if (!(cond)) { \
-			std::cerr << "assertion failed: " << #cond << std::endl; \
-			failed = true; \
-		} \
-	} while (0)
+namespace async {
 
-class test {
-public:
-	test(std::string name, const std::function<void(bool&)>);
-
-	std::string name;
-	const std::function<void(bool&)> func;
+struct spawn::impl {
+	std::thread thread;
 };
 
-#endif
+spawn::spawn(const std::function<void(void)>& func)
+	: pimpl(new impl) {
+	pimpl->thread = std::thread(func);
+}
+
+spawn::~spawn() {
+	pimpl->thread.join();
+}
+
+struct apply::impl {
+	std::vector<std::thread> threads;
+};
+
+apply::apply(size_t iterations, const std::function<void(size_t idx)>& func)
+	: pimpl(new impl) {
+	for (int i = 0; i < iterations; i++) {
+		pimpl->threads.push_back(std::thread(func, i));
+	}
+}
+
+apply::~apply() {
+	for (auto &thread : pimpl->threads) {
+		thread.join();
+	}
+}
+
+}

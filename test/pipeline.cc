@@ -24,3 +24,20 @@
 #include <async.h>
 #include "test.h"
 
+test pipeline_test("pipeline", [](bool &failed){
+	async::pipeline<int> pipeline;
+	pipeline.stage([](int &v){
+		v--;
+	});
+
+	pipeline.stage([](int &v){
+		v -= 3;
+	});
+
+	int val = 42;
+	pipeline.push(val);
+
+	pipeline.wait();
+
+	assert(val == 42 - 1 - 3);
+});
