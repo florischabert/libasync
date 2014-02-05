@@ -87,13 +87,16 @@ void pool::impl::worker_thread(void) {
 	}
 }
 
-pool::pool() : pool(std::thread::hardware_concurrency()) {
-}
 
-pool::pool(size_t nthreads) : pimpl(new impl) {
-	if (nthreads == 0) {
-		nthreads = 1;
-	}
+	queue& async(group &group, const std::function<void(void)>&);
+	queue& sync(group &group, const std::function<void(void)>&);
+
+	pool& apply(size_t iterations, const std::function<void(size_t idx)>&);
+
+	pool& wait();
+
+pool::pool() : pimpl(new impl) {
+	const int nthreads = std::thread::hardware_concurrency();
 
 	for (size_t idx = 0; idx < nthreads; idx++) {
 		pimpl->workers.push_back(std::thread(&impl::worker_thread, pimpl));
@@ -111,7 +114,7 @@ pool::~pool() {
 	}
 }
 
-pool& pool::push(const std::function<void(void)>& job) {
+pool& pool::async(const std::function<void(void)>& job) {
 	if (job) {
 		std::lock_guard<std::mutex> lock(pimpl->mutex);
 		pimpl->jobs.push(job);
@@ -122,7 +125,19 @@ pool& pool::push(const std::function<void(void)>& job) {
 	return *this;
 }
 
-pool& pool::push(const class barrier&) {
+pool& pool::async(group &group, const std::function<void(void)>& job) {
+	return *this;
+}
+
+pool& pool::sync(const std::function<void(void)>& job) {
+	return *this;
+}
+
+pool& pool::sync(group &group, const std::function<void(void)>& job) {
+	return *this;
+}
+
+pool& pool::barrier() {
 	{
 		std::lock_guard<std::mutex> lock(pimpl->mutex);
 		pimpl->jobs.push(nullptr);
@@ -145,24 +160,10 @@ pool& pool::wait() {
 
 pool& pool::apply(size_t iterations, const std::function<void(size_t idx)>& job) {
 	for (int idx = 0; idx < iterations; idx++) {
-		push([&]{
+		async([&]{
 			job(idx);
 		});
 	}
-
-	return *this;
-}
-
-pool& pool::clear() {
-	{
-		std::lock_guard<std::mutex> lock(pimpl->mutex);
-
-		while (!pimpl->jobs.empty()) {
-			pimpl->jobs.pop();
-		}
-	}
-
-	wait();
 
 	return *this;
 }

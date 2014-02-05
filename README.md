@@ -5,81 +5,99 @@ What is it?
 -----------
 libasync is a C++11 library for concurrency and multithreading.
 
-libasync allows you to do concurrent work on pools of threads. It provides APIs to create data-driven pipelines composed of different compute steps. You also get barriers, channels, gates and all the tools write complex concurrent algorithms.
+libasync allows you to do concurrent work on multithreaded pools and serial queues. There's barriers and work groups for synchronization. Widely inspired by the great dispatch library.
+It also provides APIs to create data-driven pipelines composed of different compute steps.
 
 libasync only uses APIs defined in the C++11 standard. This means that it's fully portable as it doesn't depend on platform specific libraries - provided your C++ compiler correctly implements the standard.
 
 How to use it?
 --------------
 
-*Scoped threading*
-	{
-		async::spawn thread([]{
-			// new thread
-		});
-	} // join when out of scope
+*Pools*
 
-	async::apply(n, [](size_t idx){
-		// run on n threads in parallel
-	});
-	// auto join on destruction
+	 // multithreaded pool
+	async::pool pool;
 
-
-*Threading pools*
-
-	async::pool pool(); // create a thread pool
-
-	pool.push([]{
-		// some concurrent computation
+	pool.async([]{
+		work();
 	});
 
-	pool.push([]{
-		// some more concurrent computation
+	pool.async([]{
+		work();
 	});
 
-	pool.push(async::barrier);
+	pool.barrier();
 
-	pool.push([]{
-	   // to be computed after the barrier
+	pool.async([]{
+		work_post_barrier();
 	};
 
-	// wait for our computations to be done
+	// wait for the tasks to be done
 	pool.wait();
 
-*Gates*
-
-	async::gate gate();
-	
-	gate.push([]{
-		// critical section
+	pool.apply(n, [](size_t idx){
+		work_chunk(idx);
 	});
 
-*Channels*
+	// run and wait for completion
+	pool.sync([]{
+		task();
+	};
 
-	async::channel<std::string> channel();
-	
-	async::spawn t1([&]{
-		std::cout << channel.pop() << std::endl;
+*Queues*
+
+	// serial queue
+	async::queue queue;
+
+	queue.async([]{
+		work();
+	};
+
+	// run and wait for completion
+	queue.sync([]{
+		task();
+	};
+
+	// using a queue as a lock
+	async::queue lock_queue;
+	async::pool pool;
+
+	pool.async([&]{
+		work();
+
+		lock_queue.sync([]{
+			critical();
+		};
+	};
+
+	pool.async([&]{
+		work();
+
+		lock_queue.sync([]{
+			critical();
+		};
+	};
+
+*Groups*
+
+	async::group group;
+	async::pool pool;
+
+	pool.async(group, []{
+		work();
 	});
 
-	async::spawn t2([&]{
-		channel.push("hey");
+	pool.async(group, []{
+		work();
 	});
 
-*Pipelining*
-	
-	async::pipeline<mytype> pipeline();
-
-	pipeline.stage([](mytype &val){
-		// 1st stage, work on val
+	pool.async(group, []{
+		unrelated_work();
 	});
 
-	pipeline.stage([](mytype &val){
-		// 2nd stage, work on val
-	});
+	group.enter();
+	work();
+	group.leave();
 
-	mytype val;
-	pipeline.push(val);
-
-	pipeline.wait();
+	group.wait();
 

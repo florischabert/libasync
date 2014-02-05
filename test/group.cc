@@ -21,41 +21,28 @@
  * THE SOFTWARE.
  */
 
-#include <thread>
-#include <vector>
+#include <async.h> 
+#include "test.h"
 
-#include <async.h>
+test group_test("group", [](bool &failed){
+	// async::group group;
+	// async::pool pool;
 
-namespace async {
+	// pool.async(group, []{
+	// 	work();
+	// });
 
-struct spawn::impl {
-	std::thread thread;
-};
+	// pool.async(group, []{
+	// 	work();
+	// });
 
-spawn::spawn(const std::function<void(void)>& func)
-	: pimpl(new impl) {
-	pimpl->thread = std::thread(func);
-}
+	// pool.async(group, []{
+	// 	unrelated_work();
+	// });
 
-spawn::~spawn() {
-	pimpl->thread.join();
-}
+	// group.enter();
+	// work();
+	// group.leave();
 
-struct apply::impl {
-	std::vector<std::thread> threads;
-};
-
-apply::apply(size_t iterations, const std::function<void(size_t idx)>& func)
-	: pimpl(new impl) {
-	for (int i = 0; i < iterations; i++) {
-		pimpl->threads.push_back(std::thread(func, i));
-	}
-}
-
-apply::~apply() {
-	for (auto &thread : pimpl->threads) {
-		thread.join();
-	}
-}
-
-}
+	// group.wait();
+});

@@ -21,23 +21,34 @@
  * THE SOFTWARE.
  */
 
+#include <mutex>
+
 #include <async.h>
-#include "test.h"
 
-test pipeline_test("pipeline", [](bool &failed){
-	async::pipeline<int> pipeline;
-	pipeline.stage([](int &v){
-		v--;
-	});
+namespace async {
 
-	pipeline.stage([](int &v){
-		v -= 3;
-	});
+struct group::impl {
+	std::mutex mutex;
+};
 
-	int val = 42;
-	pipeline.push(val);
+group::group() : pimpl(new impl) {
 
-	pipeline.wait();
+}
 
-	assert(val == 42 - 1 - 3);
-});
+group::~group() {
+
+}
+
+group& group::enter() {
+	return *this;
+}
+
+group& group::leave() {
+	return *this;
+}
+
+group& group::wait() {
+	return *this;
+}
+
+}

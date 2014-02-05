@@ -27,20 +27,35 @@
 
 namespace async {
 
-struct gate::impl {
+struct queue::impl {
 	std::mutex mutex;
 };
 
-gate::gate() : pimpl(new impl) {
+queue::queue() : pimpl(new impl) {
+
 }
 
-gate::~gate() {
+queue::~queue() {
+
 }
 
-gate& gate::push(const std::function<void(void)>& func) {
-	std::lock_guard<std::mutex> lock(pimpl->mutex);
-	func();
+queue& queue::async(const std::function<void(void)>&) {
+	return *this;
+}
 
+queue& queue::sync(const std::function<void(void)>&) {
+	return *this;
+}
+
+queue& queue::async(group &group, const std::function<void(void)>&) {
+	return *this;
+}
+
+queue& queue::sync(group &group, const std::function<void(void)>&) {
+	return *this;
+}
+
+queue& queue::wait() {
 	return *this;
 }
 

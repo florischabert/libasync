@@ -21,65 +21,39 @@
  * THE SOFTWARE.
  */
 
-#include <vector>
-#include <async.h>
- 
-namespace async {
-	
-template<class type>
-struct pipeline<type>::impl {
-	struct stage;
-	std::vector<stage> stages;
-};
+#include <async.h> 
+#include "test.h"
 
-template<class type>
-struct pipeline<type>::impl::stage {
-	stage(const std::function<void(type&)>& func);
+test queue_test("queue", [](bool &failed){
+	// // serial queue
+	// async::queue queue;
 
-	const std::function<void(type&)>& func;
-	pool pool;
-};
+	// queue.async([]{
+	// 	work();
+	// };
 
-template<class type>
-pipeline<type>::impl::stage::stage(const std::function<void(type&)>& _func)
-	: func(_func) {
-}
+	// // run and wait for completion
+	// queue.sync([]{
+	// 	task();
+	// };
 
-template<class type>
-pipeline<type>::pipeline() : pimpl(new impl) {
-}
+	// // using a queue as a lock
+	// async::queue lock_queue;
+	// async::pool pool;
 
-template<class type>
-pipeline<type>::~pipeline() {
-	// wait();
-}
+	// pool.async([&]{
+	// 	work();
 
-template<class type>
-pipeline<type>& pipeline<type>::stage(const std::function<void(type&)>& func) {
-	// if (func) {
-	// 	pimpl->stages.push_back(stage(func));
-	// }
+	// 	lock_queue.sync([]{
+	// 		critical();
+	// 	};
+	// };
 
-	return *this;
-}
+	// pool.async([&]{
+	// 	work();
 
-template<class type>
-pipeline<type>& pipeline<type>::push(type val) {
-	// pimpl::stage &stage = pimpl->stages.first();
-	// stage.pool.push(stage.func);
-
-	return *this;
-}
-
-template<class type>
-pipeline<type>& pipeline<type>::wait() {
-	// for (auto &stage : pimpl->stages) {
-	// 	stage.pool.wait();
-	// }
-
-	return *this;
-}
-
-template class pipeline<int>;
-
-}
+	// 	lock_queue.sync([]{
+	// 		critical();
+	// 	};
+	// };
+});

@@ -28,44 +28,38 @@
 
 namespace async {
 
-class spawn {
+class group {
 public:
-	spawn(const std::function<void(void)>&);
-	~spawn();
+	group();
+	~group();
+
+	group& enter();
+	group& leave();
+
+	group& wait();
 
 private:
-	struct impl; std::shared_ptr<impl> pimpl;
-	spawn(const spawn&);
-	void operator=(const spawn&);
+	struct impl; std::unique_ptr<impl> pimpl;
+	group(const group&);
+	void operator=(const group&);
 };
-
-class apply {
-public:
-	apply(size_t iterations, const std::function<void(size_t idx)>&);
-	~apply();
-
-private:
-	struct impl; std::shared_ptr<impl> pimpl;
-	apply(const apply&);
-	void operator=(const apply&);
-};
-
-class barrier {};
 
 class pool {
 public:
 	pool();
-	pool(size_t num_threads);
 	~pool();
 
-	pool& push(const std::function<void(void)>&);
-	pool& push(const barrier&);
+	pool& async(const std::function<void(void)>&);
+	pool& sync(const std::function<void(void)>&);
+
+	pool& async(group &group, const std::function<void(void)>&);
+	pool& sync(group &group, const std::function<void(void)>&);
+
+	pool& barrier();
 
 	pool& apply(size_t iterations, const std::function<void(size_t idx)>&);
 
 	pool& wait();
-
-	pool& clear();
 
 private:
 	struct impl; std::shared_ptr<impl> pimpl;
@@ -73,32 +67,23 @@ private:
 	void operator=(const pool&);
 };
 
-class gate {
+class queue {
 public:
-	gate();
-	~gate();
+	queue();
+	~queue();
 
-	gate& push(const std::function<void(void)>&);
+	queue& async(const std::function<void(void)>&);
+	queue& sync(const std::function<void(void)>&);
+
+	queue& async(group &group, const std::function<void(void)>&);
+	queue& sync(group &group, const std::function<void(void)>&);
+
+	queue& wait();
 
 private:
 	struct impl; std::unique_ptr<impl> pimpl;
-	gate(const gate&);
-	void operator=(const gate&);
-};
-
-template<class type>
-class channel {
-public:
-	channel();
-	~channel();
-
-	channel& push(type);
-	type pop();
-
-private:
-	struct impl; std::unique_ptr<impl> pimpl;
-	channel(const channel&);
-	void operator=(const channel&);
+	queue(const queue&);
+	void operator=(const queue&);
 };
 
 template<class type>

@@ -25,31 +25,32 @@
 #include "test.h"
 
 test pool_test("pool", [](bool &failed){
-	const int max_loops = 100;
+	// // multithreaded pool
+	// async::pool pool;
 
-	for (int i = 0; i < max_loops; i++) {
-		async::pool pool;
-		int val = 0;
+	// pool.async([]{
+	// 	work();
+	// });
 
-		pool.push([&]{
-			assert(val == 0 || val == 2);
-			val = 1;
-		});
+	// pool.async([]{
+	// 	work();
+	// });
 
-		pool.push([&]{
-			assert(val == 0 || val == 1);
-			val = 2;
-		});
+	// pool.barrier();
 
-		pool.push(async::barrier());
+	// pool.async([]{
+	// 	work_post_barrier();
+	// };
 
-		pool.push([&]{
-			assert(val == 1 || val == 2);
-			val = 3;
-		});
+	// // wait for the tasks to be done
+	// pool.wait();
 
-		pool.wait();
+	// pool.apply(n, [](size_t idx){
+	// 	work_chunk(idx);
+	// });
 
-		assert(val == 3);
-	}
+	// // run and wait for completion
+	// pool.sync([]{
+	// 	task();
+	// };
 });
