@@ -24,25 +24,77 @@
 #include <async.h> 
 #include "test.h"
 
-test group_test("group", [](bool &failed){
-	// async::group group;
-	// async::pool pool;
+test group_enter("group: enter", []{
+	const int max_loops = 100;
+	bool did_except = false;
+	async::group group;
 
-	// pool.async(group, []{
-	// 	work();
-	// });
+	try {
+		for (int i = 0; i < max_loops; i++) {
+			group.enter();
+		}
 
-	// pool.async(group, []{
-	// 	work();
-	// });
+		for (int i = 0; i < max_loops; i++) {
+			group.leave();
+		}
 
-	// pool.async(group, []{
-	// 	unrelated_work();
-	// });
+		group.wait();
+	}
+	catch (async::error& e) {
+		did_except = true;
+	}
+	assert(!did_except);
 
-	// group.enter();
-	// work();
-	// group.leave();
+	try {
+		group.leave();
+	}
+	catch (async::error& e) {
+		did_except = true;
+	}
+	assert(did_except);
+});
 
-	// group.wait();
+test group_async("group: async", []{
+	const int max_loops = 100;
+	async::group group;
+	async::pool pool;
+
+	for (int i = 0; i < max_loops; i++) {
+		int val = 42;
+
+		group.enter();
+
+		pool.async(group, [&]{
+			assert(val == 42 || val == 43);
+			val = 43;
+		});
+
+		pool.async([&]{
+			group.enter();
+
+			assert(val == 42 || val == 43);
+			val = 43;
+			
+			group.leave();
+		});
+
+		pool.barrier();
+
+		pool.async([&]{
+			group.wait();
+
+			assert(val == 44);
+			val = 45;
+		});
+
+		pool.async(group, [&]{
+			assert(val == 43);
+			val = 44;
+
+			group.leave();
+		});
+
+		pool.wait();
+		assert(val == 45);
+	}
 });

@@ -39,19 +39,38 @@ queue::~queue() {
 
 }
 
-queue& queue::async(const std::function<void(void)>&) {
+queue& queue::async(const std::function<void(void)>& job) throw(error) {
+	if (!job) {
+		throw error("Bad job.");
+	}
+
 	return *this;
 }
 
-queue& queue::sync(const std::function<void(void)>&) {
+queue& queue::sync(const std::function<void(void)>& job) throw(error) {
+	if (!job) {
+		throw error("Bad job.");
+	}
+
+	std::unique_lock<std::mutex> lock(pimpl->mutex);
+	job();
+
 	return *this;
 }
 
-queue& queue::async(group &group, const std::function<void(void)>&) {
+queue& queue::async(group &group, const std::function<void(void)>& job) throw(error) {
+	if (!job) {
+		throw error("Bad job.");
+	}
+
 	return *this;
 }
 
-queue& queue::sync(group &group, const std::function<void(void)>&) {
+queue& queue::sync(group &group, const std::function<void(void)>& job) throw(error) {
+	if (!job) {
+		throw error("Bad job.");
+	}
+
 	return *this;
 }
 

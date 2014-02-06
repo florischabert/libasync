@@ -24,33 +24,62 @@
 #include <async.h>
 #include "test.h"
 
-test pool_test("pool", [](bool &failed){
-	// // multithreaded pool
-	// async::pool pool;
+test pool_async("pool: async", []{
+	const int max_loops = 100;
+	const int max_val = 100;
+	async::pool pool;
+	async::queue lock_queue;
 
-	// pool.async([]{
-	// 	work();
-	// });
+	for (int i = 0; i < max_loops; i++) {
+		int val = 0;
 
-	// pool.async([]{
-	// 	work();
-	// });
+		for (int i = 0; i < max_val; i++) {
+			pool.async([&]{
+				lock_queue.sync([&]{
+					val++;
+				});
+			});
+		}
 
-	// pool.barrier();
+		pool.barrier();
 
-	// pool.async([]{
-	// 	work_post_barrier();
-	// };
+		pool.async([&]{
+			assert(val == max_val);
+			val = 42;
+		});
 
-	// // wait for the tasks to be done
-	// pool.wait();
-
-	// pool.apply(n, [](size_t idx){
-	// 	work_chunk(idx);
-	// });
-
-	// // run and wait for completion
-	// pool.sync([]{
-	// 	task();
-	// };
+		pool.wait();
+		assert(val == 42);
+	}
 });
+
+test pool_sync("pool: sync", []{
+	const int max_loops = 100;
+	async::pool pool;
+
+	for (int i = 0; i < max_loops; i++) {
+		int val = 0;
+		
+		pool.sync([&]{
+			assert(val == 0);
+			val = 42;
+		});
+		assert(val == 42);
+	}
+});
+
+test pool_apply("pool: apply", []{
+	const int max_idx = 100;
+	async::pool pool;
+	int val = 0;
+
+	pool.apply(max_idx, [&](size_t idx){
+			val += idx;
+	});
+
+	int canary = 0;
+	for (int i = 0; i < max_idx; i++) {
+		canary += i;
+	}
+	assert(canary == val);
+});	

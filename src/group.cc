@@ -22,32 +22,53 @@
  */
 
 #include <mutex>
+#include <condition_variable>
 
 #include <async.h>
 
 namespace async {
 
 struct group::impl {
+	size_t size;
 	std::mutex mutex;
+	std::condition_variable event;
 };
 
 group::group() : pimpl(new impl) {
-
+	pimpl->size = 0;
 }
 
 group::~group() {
-
+	wait();
 }
 
 group& group::enter() {
+	std::lock_guard<std::mutex> lock(pimpl->mutex);
+	pimpl->size++;
+
 	return *this;
 }
 
-group& group::leave() {
+group& group::leave() throw(error) {
+	std::lock_guard<std::mutex> lock(pimpl->mutex);
+
+	if (pimpl->size == 0) {
+		throw error("Group is empty.");
+	}	
+
+	pimpl->size--;
+	pimpl->event.notify_all();
+
 	return *this;
 }
 
 group& group::wait() {
+	std::unique_lock<std::mutex> lock(pimpl->mutex);
+
+	while (pimpl->size > 0) {
+		pimpl->event.wait(lock);
+	}
+
 	return *this;
 }
 

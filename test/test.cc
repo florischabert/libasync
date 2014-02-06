@@ -28,7 +28,7 @@ std::vector<test> &get_tests() {
 	return tests;
 }
 
-test::test(std::string _name, const std::function<void(bool&)> _func)
+test::test(std::string _name, const std::function<void()> _func)
 	: name(_name), func(_func) {
 	get_tests().push_back(std::move(*this));
 }
@@ -39,10 +39,14 @@ int main(int argc, char const *argv[])
 
 	std::cout << "Testing..." << std::endl;
 	for (auto &t : get_tests()) {
-		bool failed = false;
-		std::cout << "- " <<  t.name << std::endl;
-		t.func(failed);
-		failed_count += failed;
+		std::cout << "-> " <<  t.name << std::endl;
+		try {
+			t.func();
+		}
+		catch (const std::runtime_error& e) {
+			std::cerr << e.what() << std::endl;
+			failed_count++;
+		}
 	}
 
 	if (failed_count) {

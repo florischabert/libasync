@@ -24,9 +24,14 @@
 #ifndef __ASYNC_H__
 #define __ASYNC_H__
 
+#include <stdexcept>
 #include <functional>
 
 namespace async {
+
+struct error : public std::runtime_error {
+	error(const char *msg) : std::runtime_error(msg) {}
+};
 
 class group {
 public:
@@ -34,7 +39,7 @@ public:
 	~group();
 
 	group& enter();
-	group& leave();
+	group& leave() throw(error);
 
 	group& wait();
 
@@ -49,15 +54,15 @@ public:
 	pool();
 	~pool();
 
-	pool& async(const std::function<void(void)>&);
-	pool& sync(const std::function<void(void)>&);
+	pool& async(const std::function<void(void)>&) throw(error);
+	pool& sync(const std::function<void(void)>&) throw(error);
 
-	pool& async(group &group, const std::function<void(void)>&);
-	pool& sync(group &group, const std::function<void(void)>&);
+	pool& async(group &group, const std::function<void(void)>&) throw(error);
+	pool& sync(group &group, const std::function<void(void)>&) throw(error);
 
 	pool& barrier();
 
-	pool& apply(size_t iterations, const std::function<void(size_t idx)>&);
+	pool& apply(size_t iterations, const std::function<void(size_t idx)>&) throw(error);
 
 	pool& wait();
 
@@ -72,11 +77,11 @@ public:
 	queue();
 	~queue();
 
-	queue& async(const std::function<void(void)>&);
-	queue& sync(const std::function<void(void)>&);
+	queue& async(const std::function<void(void)>&) throw(error);
+	queue& sync(const std::function<void(void)>&) throw(error);
 
-	queue& async(group &group, const std::function<void(void)>&);
-	queue& sync(group &group, const std::function<void(void)>&);
+	queue& async(group &group, const std::function<void(void)>&) throw(error);
+	queue& sync(group &group, const std::function<void(void)>&) throw(error);
 
 	queue& wait();
 
@@ -84,22 +89,6 @@ private:
 	struct impl; std::unique_ptr<impl> pimpl;
 	queue(const queue&);
 	void operator=(const queue&);
-};
-
-template<class type>
-class pipeline {
-public:
-	pipeline();
-	~pipeline();
-
-	pipeline& stage(const std::function<void(type&)>&);
-	pipeline& push(type);
-	pipeline& wait();
-
-private:
-	struct impl; std::unique_ptr<impl> pimpl;
-	pipeline(const pipeline&);
-	void operator=(const pipeline&);
 };
 
 }

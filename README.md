@@ -5,7 +5,7 @@ What is it?
 -----------
 libasync is a C++11 library for concurrency and multithreading.
 
-libasync allows you to do concurrent work on multithreaded pools and serial queues. There's barriers and work groups for synchronization. Widely inspired by the great dispatch library.
+libasync allows you to do concurrent work on multithreaded pools and serial queues. There's barriers and work groups for synchronization. Inspired by the great dispatch library.
 It also provides APIs to create data-driven pipelines composed of different compute steps.
 
 libasync only uses APIs defined in the C++11 standard. This means that it's fully portable as it doesn't depend on platform specific libraries - provided your C++ compiler correctly implements the standard.
@@ -15,7 +15,7 @@ How to use it?
 
 *Pools*
 
-	 // multithreaded pool
+	// multithreaded pool
 	async::pool pool;
 
 	pool.async([]{
@@ -91,7 +91,7 @@ How to use it?
 		work();
 	});
 
-	pool.async(group, []{
+	pool.async([]{
 		unrelated_work();
 	});
 

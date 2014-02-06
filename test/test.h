@@ -26,22 +26,24 @@
 
 #include <iostream>
 #include <vector>
+#include <stdexcept>
 
+#define STRINGIZE_DETAIL(x) #x
+#define STRINGIZE(x) STRINGIZE_DETAIL(x)
 
 #define assert(cond) \
 	do { \
 		if (!(cond)) { \
-			std::cerr << "assertion failed: " << #cond << std::endl; \
-			failed = true; \
+			throw std::runtime_error(__FILE__ ":" STRINGIZE(__LINE__) ": assertion failed: " #cond); \
 		} \
 	} while (0)
 
 class test {
 public:
-	test(std::string name, const std::function<void(bool&)>);
+	test(std::string name, const std::function<void()>);
 
 	std::string name;
-	const std::function<void(bool&)> func;
+	const std::function<void()> func;
 };
 
 #endif

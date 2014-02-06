@@ -87,14 +87,6 @@ void pool::impl::worker_thread(void) {
 	}
 }
 
-
-	queue& async(group &group, const std::function<void(void)>&);
-	queue& sync(group &group, const std::function<void(void)>&);
-
-	pool& apply(size_t iterations, const std::function<void(size_t idx)>&);
-
-	pool& wait();
-
 pool::pool() : pimpl(new impl) {
 	const int nthreads = std::thread::hardware_concurrency();
 
@@ -114,34 +106,77 @@ pool::~pool() {
 	}
 }
 
-pool& pool::async(const std::function<void(void)>& job) {
-	if (job) {
-		std::lock_guard<std::mutex> lock(pimpl->mutex);
-		pimpl->jobs.push(job);
+pool& pool::async(const std::function<void(void)>& job) throw(error) {
+	if (!job) {
+		throw error("Bad job.");
+	}
 
-		pimpl->event.notify_one();
+	std::lock_guard<std::mutex> lock(pimpl->mutex);
+	pimpl->jobs.push(job);
+
+	pimpl->event.notify_one();
+
+	return *this;
+}
+
+pool& pool::async(group &group, const std::function<void(void)>& job) throw(error) {
+	if (!job) {
+		throw error("Bad job.");
+	}
+
+	group.enter();
+
+	async([&] {
+		job();
+		group.leave();
+	});
+
+	return *this;
+}
+
+pool& pool::sync(const std::function<void(void)>& job) throw(error) {
+	bool done = false;
+	std::mutex sync_mutex;
+	std::condition_variable sync_event;
+
+	if (!job) {
+		throw error("Bad job.");
+	}
+
+	async([&]{
+		job();
+
+		std::lock_guard<std::mutex> sync_lock(sync_mutex);
+		done = true;
+		sync_event.notify_all();
+	});
+
+	std::unique_lock<std::mutex> sync_lock(sync_mutex);
+	while (!done) {
+		sync_event.wait(sync_lock);
 	}
 
 	return *this;
 }
 
-pool& pool::async(group &group, const std::function<void(void)>& job) {
-	return *this;
-}
+pool& pool::sync(group &group, const std::function<void(void)>& job) throw(error) {
+	if (!job) {
+		throw error("Bad job.");
+	}
 
-pool& pool::sync(const std::function<void(void)>& job) {
-	return *this;
-}
+	group.enter();
 
-pool& pool::sync(group &group, const std::function<void(void)>& job) {
+	sync([&] {
+		job();
+		group.leave();
+	});
+
 	return *this;
 }
 
 pool& pool::barrier() {
-	{
-		std::lock_guard<std::mutex> lock(pimpl->mutex);
-		pimpl->jobs.push(nullptr);
-	}
+	std::lock_guard<std::mutex> lock(pimpl->mutex);
+	pimpl->jobs.push(nullptr);
 	
 	pimpl->event.notify_one();
 
@@ -158,11 +193,28 @@ pool& pool::wait() {
 	return *this;
 }
 
-pool& pool::apply(size_t iterations, const std::function<void(size_t idx)>& job) {
+pool& pool::apply(size_t iterations, const std::function<void(size_t idx)>& job) throw(error) {
+	size_t num_done = 0;
+	std::mutex sync_mutex;
+	std::condition_variable sync_event;
+
+	if (!job) {
+		throw error("Bad job.");
+	}
+
 	for (int idx = 0; idx < iterations; idx++) {
 		async([&]{
 			job(idx);
+
+			std::lock_guard<std::mutex> sync_lock(sync_mutex);
+			num_done++;
+			sync_event.notify_all();
 		});
+	}
+
+	std::unique_lock<std::mutex> sync_lock(sync_mutex);
+	while (num_done < iterations) {
+		sync_event.wait(sync_lock);
 	}
 
 	return *this;

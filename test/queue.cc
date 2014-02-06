@@ -24,7 +24,10 @@
 #include <async.h> 
 #include "test.h"
 
-test queue_test("queue", [](bool &failed){
+test queue_async("queue: async", []{
+});
+
+test queue_sync("queue: sync", []{
 	// // serial queue
 	// async::queue queue;
 
