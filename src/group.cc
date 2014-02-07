@@ -32,10 +32,15 @@ struct group::impl {
 	size_t size;
 	std::mutex mutex;
 	std::condition_variable event;
+	
+	impl();
 };
 
+group::impl::impl() {
+	size = 0;
+}
+
 group::group() : pimpl(new impl) {
-	pimpl->size = 0;
 }
 
 group::~group() {

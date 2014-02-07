@@ -24,6 +24,19 @@
 #include <async.h> 
 #include "test.h"
 
+test group_edges("group: edges", []{
+	bool did_except = false;
+	async::group group;
+
+	try {
+		group.leave();
+	}
+	catch (async::error& e) {
+		did_except = true;
+	}
+	assert(did_except);
+});
+
 test group_enter("group: enter", []{
 	const int max_loops = 100;
 	bool did_except = false;
@@ -44,14 +57,6 @@ test group_enter("group: enter", []{
 		did_except = true;
 	}
 	assert(!did_except);
-
-	try {
-		group.leave();
-	}
-	catch (async::error& e) {
-		did_except = true;
-	}
-	assert(did_except);
 });
 
 test group_async("group: async", []{
@@ -64,12 +69,12 @@ test group_async("group: async", []{
 
 		group.enter();
 
-		pool.async(group, [&]{
+		pool.async(group, [&, i]{
 			assert(val == 42 || val == 43);
 			val = 43;
 		});
 
-		pool.async([&]{
+		pool.async([&, i]{
 			group.enter();
 
 			assert(val == 42 || val == 43);
@@ -80,14 +85,14 @@ test group_async("group: async", []{
 
 		pool.barrier();
 
-		pool.async([&]{
+		pool.async([&, i]{
 			group.wait();
 
 			assert(val == 44);
 			val = 45;
 		});
 
-		pool.async(group, [&]{
+		pool.async(group, [&, i]{
 			assert(val == 43);
 			val = 44;
 

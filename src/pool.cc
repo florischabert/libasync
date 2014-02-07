@@ -46,10 +46,14 @@ struct pool::impl {
 	void worker_thread(void);
 };
 
-pool::impl::impl(void) {
+pool::impl::impl() {
 	killed = false;
 	barrier = false;
 	nready = 0;
+
+	for (size_t idx = 0; idx < std::thread::hardware_concurrency(); idx++) {
+		workers.push_back(std::thread(&impl::worker_thread, this));
+	}
 }
 
 void pool::impl::worker_thread(void) {
@@ -88,11 +92,6 @@ void pool::impl::worker_thread(void) {
 }
 
 pool::pool() : pimpl(new impl) {
-	const int nthreads = std::thread::hardware_concurrency();
-
-	for (size_t idx = 0; idx < nthreads; idx++) {
-		pimpl->workers.push_back(std::thread(&impl::worker_thread, pimpl));
-	}
 }
 
 pool::~pool() {
@@ -203,7 +202,7 @@ pool& pool::apply(size_t iterations, const std::function<void(size_t idx)>& job)
 	}
 
 	for (int idx = 0; idx < iterations; idx++) {
-		async([&]{
+		async([&, idx]{
 			job(idx);
 
 			std::lock_guard<std::mutex> sync_lock(sync_mutex);

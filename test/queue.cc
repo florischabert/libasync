@@ -24,39 +24,45 @@
 #include <async.h> 
 #include "test.h"
 
+test queue_edges("queue: edges", []{
+	bool did_except = false;
+	async::queue queue;
+
+	try {
+		queue.async(nullptr);
+	}
+	catch (async::error& e) {
+		did_except = true;
+	}
+	assert(did_except);
+});
+
+
 test queue_async("queue: async", []{
+	const int max_loops = 100;
+	async::queue queue;
+	int val = 0;
+
+	for (int i = 0; i < max_loops; i++) {
+		queue.async([&, i]{
+			assert(val == i);
+			val++;
+		});
+	}
+
+	queue.wait();
+	assert(val == max_loops);
 });
 
 test queue_sync("queue: sync", []{
-	// // serial queue
-	// async::queue queue;
+	const int max_loops = 100;
+	async::queue queue;
+	int val = 0;
 
-	// queue.async([]{
-	// 	work();
-	// };
-
-	// // run and wait for completion
-	// queue.sync([]{
-	// 	task();
-	// };
-
-	// // using a queue as a lock
-	// async::queue lock_queue;
-	// async::pool pool;
-
-	// pool.async([&]{
-	// 	work();
-
-	// 	lock_queue.sync([]{
-	// 		critical();
-	// 	};
-	// };
-
-	// pool.async([&]{
-	// 	work();
-
-	// 	lock_queue.sync([]{
-	// 		critical();
-	// 	};
-	// };
+	for (int i = 0; i < max_loops; i++) {
+		queue.sync([&, i]{
+			val++;
+		});
+		assert(val == i+1);
+	}
 });

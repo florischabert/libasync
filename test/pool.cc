@@ -24,8 +24,21 @@
 #include <async.h>
 #include "test.h"
 
+test pool_edges("pool: edges", []{
+	bool did_except = false;
+	async::pool pool;
+
+	try {
+		pool.async(nullptr);
+	}
+	catch (async::error& e) {
+		did_except = true;
+	}
+	assert(did_except);
+});
+
 test pool_async("pool: async", []{
-	const int max_loops = 100;
+	const int max_loops = 10;
 	const int max_val = 100;
 	async::pool pool;
 	async::queue lock_queue;
@@ -33,8 +46,8 @@ test pool_async("pool: async", []{
 	for (int i = 0; i < max_loops; i++) {
 		int val = 0;
 
-		for (int i = 0; i < max_val; i++) {
-			pool.async([&]{
+		for (int j = 0; j < max_val; j++) {
+			pool.async([&, i, j]{
 				lock_queue.sync([&]{
 					val++;
 				});
@@ -43,7 +56,7 @@ test pool_async("pool: async", []{
 
 		pool.barrier();
 
-		pool.async([&]{
+		pool.async([&, i]{
 			assert(val == max_val);
 			val = 42;
 		});
@@ -59,8 +72,8 @@ test pool_sync("pool: sync", []{
 
 	for (int i = 0; i < max_loops; i++) {
 		int val = 0;
-		
-		pool.sync([&]{
+
+		pool.sync([&, i]{
 			assert(val == 0);
 			val = 42;
 		});
@@ -69,12 +82,15 @@ test pool_sync("pool: sync", []{
 });
 
 test pool_apply("pool: apply", []{
-	const int max_idx = 100;
+	const int max_idx = 1;
 	async::pool pool;
+	async::queue lock_queue;
 	int val = 0;
 
 	pool.apply(max_idx, [&](size_t idx){
+		lock_queue.sync([&]{
 			val += idx;
+		});
 	});
 
 	int canary = 0;
